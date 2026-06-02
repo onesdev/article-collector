@@ -1,5 +1,6 @@
 ---
 name: article-collector
+version: 1.0.1
 description: 微信公众号文章、知乎文章和小红书笔记自动收藏技能。当用户提供微信公众号文章链接、知乎文章链接或小红书链接时触发，自动访问文章页面、提取文章元数据，并将提取结果写入金山文档多维表进行收藏管理。微信/知乎文章提取完整元数据（标题、链接、摘要、关键词标签、作者、发布日期），小红书仅提取标题和链接。触发场景包括：用户发送包含 mp.weixin.qq.com、zhuanlan.zhihu.com、xiaohongshu.com 或 xhslink.com 链接的消息、用户要求收藏/保存/记录某篇文章、用户提到"文章收藏"、"收藏文章"、"记录文章"等意图。
 agent_created: true
 ---
@@ -227,8 +228,3 @@ print(formatted)
 ## References
 
 - `references/kdocs_schema.md` — 金山文档多维表的完整 Schema 信息和字段定义
-
-
-## 版本 1.0.0
-
-首次发布到 GitHub
