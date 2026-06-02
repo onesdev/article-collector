@@ -1,0 +1,71 @@
+name: Publish to ClawHub
+
+on:
+  push:
+    tags:
+      - 'v*'  # 推送 v1.0.0, v1.2.3 等 tag 时触发
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 检出代码
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. 读取 SKILL.md 中的元数据
+      - name: Extract metadata
+        id: meta
+        run: |
+          # 提取 skill 名称
+          NAME=$(grep -E '^# |^name:' SKILL.md | head -1 | sed 's/# //;s/name: //')
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+
+          # 提取版本号（去掉 v 前缀）
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # 提取变更日志（从 ## Changelog 或指定章节）
+          CHANGELOG=$(awk '/## Changelog|## 变更日志/{flag=1;next}/^## /{flag=0}flag' SKILL.md)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      # 3. 安装 clawhub CLI
+      - name: Setup ClawHub CLI
+        run: |
+          npm install -g @openclaw/clawhub-cli
+
+      # 4. 登录认证（使用 GitHub Secrets）
+      - name: Authenticate
+        env:
+          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+        run: |
+          echo "$CLAWHUB_TOKEN" | clawhub login --stdin
+
+      # 5. 发布到 ClawHub
+      - name: Publish
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          clawhub skill publish . \
+            --owner "@$OWNER" \
+            --version "${{ steps.meta.outputs.version }}" \
+            --notes "${{ steps.meta.outputs.changelog }}"
+
+      # 6. 通知结果
+      - name: Notify
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}';
+            const name = '${{ steps.meta.outputs.name }}';
+            const version = '${{ steps.meta.outputs.version }}';
+
+            if (status === 'success') {
+              core.notice(`✅ ${name} v${version} 发布成功！`);
+            } else {
+              core.error(`❌ ${name} v${version} 发布失败`);
+            }
